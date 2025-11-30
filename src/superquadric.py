@@ -58,7 +58,7 @@ class Superquadric:
 
         # build faces for the mesh
         faces = []
-        for i in range(u_res - 1):
+        for i in range(-1, u_res - 1):
             for j in range(v_res - 1):
                 idx = i * v_res + j
                 faces.append([idx, idx + 1, idx + v_res])
