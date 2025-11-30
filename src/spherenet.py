@@ -89,7 +89,14 @@ class SphereNet(nn.Module):
         return sphere_sdf, sphere_params
 
 
-def visualise_spheres(sphere_params, reference_model, save_path=None):
+def visualise_spheres(sphere_params, reference_model):
+    """
+    Displays the sphere fitting against the reference model.
+
+    Args:
+        sphere_params (torch.tensor): Kx4 tensor of sphere parameters (center and radius).
+        reference_model (list): List of points for a point cloud. 
+    """
     sphere_params = sphere_params.cpu().detach().numpy()
     sphere_centers = sphere_params[..., :3]
     sphere_radii = np.abs(sphere_params[..., 3])
@@ -100,12 +107,20 @@ def visualise_spheres(sphere_params, reference_model, save_path=None):
         sphere = trimesh.creation.icosphere(radius=radius, subdivisions=2)
         sphere.apply_translation(center)
         scene.add_geometry(sphere)
-    if save_path is not None:
-        scene.export(save_path)
     scene.show()
 
 
 def create_sphere_pc(sphere_param, res=10):
+    """
+    Creates a point cloud from sphere parameters.
+
+    Args:
+        sphere_param (torch.tensor): Sphere center and radius -> (x0, y0, z0, r).
+        res (int): How many sample to take from the sphere along an axis. 
+    Returns:
+        (ndarray): Nx3 matrix of points to make the point cloud 
+    """
+
     # parameter ranges
     u = np.linspace(0, np.pi, res)
     v = np.linspace(0, 2*np.pi, res)
@@ -122,6 +137,14 @@ def create_sphere_pc(sphere_param, res=10):
     return points
 
 def sphere_params_to_pc(sphere_params):
+    """
+    Generate a point cloud from a list of sphere params.
+    
+    Args:
+        sphere_params (torch.tensor): Kx4 tensor of sphere parameters (center and radius).
+    Returns:
+        (list): Nx3 matrix of points to up a point cloud.
+    """
     pc = []
     for sphere_param in sphere_params:
         pc.extend(create_sphere_pc(sphere_param))
@@ -129,6 +152,18 @@ def sphere_params_to_pc(sphere_params):
     return pc
 
 def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=256, num_epochs=100):
+    """
+    Using SphereNet to fit spheres to a given sdf model. 
+
+    Args:
+        surface_points (list): Nx3 matrix of surface points of the ground truth.
+        sdf_points (list): Kx3 matrix of sdf points of the ground truth.
+        sdf_values (list): List of K signed distances of the ground truth.
+        num_spheres (int): L number of spheres to fit.
+        num_epochs (int): Number of iterations.
+    Returns:
+        (list): Lx4 matrix of spheres parameters (x0, y0, z0, r).
+    """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sdf_points = torch.from_numpy(sdf_points).float().to(device)
     sdf_values = torch.from_numpy(sdf_values).float().to(device)
