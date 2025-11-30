@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     # initialize the arguments to the fitting algorithm
     args = {'inlier_ratio': 0.999}
-    min_cluster_size = 5
+    min_cluster_size = 15
     superquadrics = []
     clusters = [points]
 

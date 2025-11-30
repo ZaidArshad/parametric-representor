@@ -6,6 +6,8 @@ class Superquadric:
     """ class for defining and visualizing superquadrics"""
     def __init__(self, x):
         """ x = [e1, e2, a1, a2, a3, rx, ry, rz, tx, ty, tz] """
+
+        self.x = x
         
         # shape
         self.e1 = x[0]
@@ -39,19 +41,19 @@ class Superquadric:
         rotation_matrix_1 = self.rotation_matrix[:3, (1, 2, 0)]
         rotation_matrix_2 = self.rotation_matrix[:3, (2, 0, 1)]
 
-        similars.append(Superquadric([
+        similars.append(Superquadric(np.array([
             self.e2, self.e1,
             self.a2, self.a3, self.a1,
             *matrix_to_euler(rotation_matrix_1),
             *self.position,
-            ]))
+            ])))
 
-        similars.append(Superquadric([
+        similars.append(Superquadric(np.array([
             self.e2, self.e1,
             self.a3, self.a1, self.a2,
             *matrix_to_euler(rotation_matrix_2),
             *self.position,
-            ]))
+            ])))
 
         # get a similar superquadric by duality similarity
         duality_similarity = np.abs(self.a1 / self.a2)
@@ -70,12 +72,12 @@ class Superquadric:
             # compute the new rotation matrix
             rotation_matrix = self.rotation_matrix[:3, :3] @ euler_to_matrix(0, 0, np.pi / 4)
 
-            similars.append(Superquadric([
+            similars.append(Superquadric(np.array([
                 self.e1, 2 - self.e2,
                 a, a, self.a3,
                 *matrix_to_euler(rotation_matrix),
                 *self.position,
-                ]))
+                ])))
 
         return similars
 

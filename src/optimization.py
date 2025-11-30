@@ -1,5 +1,6 @@
 import numpy as np
 from utilities import *
+from superquadric import Superquadric
 import scipy
 import time
 
@@ -74,8 +75,9 @@ def points_to_superquadric(points, args=None):
     sigma = V**(1/3) / 10.0
 
     # initialize EMS loop
-    x = x0
+    x = np.minimum(np.maximum(x0, lower_bounds), upper_bounds)
     p = np.ones(points.shape[0])
+    previous_cost = np.inf
 
     start_time = time.time()
     for iteration in range(20):
@@ -98,7 +100,43 @@ def points_to_superquadric(points, args=None):
         x_new = optfunc.x
 
         # S step
-        pass
+        if previous_cost == np.inf: cost_change = -1
+        else: cost_change = (optfunc.cost - previous_cost) / previous_cost
+
+        previous_cost = optfunc.cost
+
+        # when the solution stops improving, find similar superquadrics
+        if cost_change > -0.01:
+            similars = Superquadric(x_new).get_similars()
+
+            best_candidate = x_new
+            best_p = p
+            best_cost = optfunc.cost
+
+            for candidate in similars:
+
+                candidate_x = np.minimum(np.maximum(candidate.x, lower_bounds), upper_bounds)
+
+                # E step
+                candidate_dists = distance_to_superquadric(points, candidate_x)
+                candidate_p = inlier_probability(candidate_dists, sigma, inlier_ratio, p0)
+
+                # M step
+                candidate_optfunc = scipy.optimize.least_squares(
+                        fun=cost_function,
+                        x0=candidate_x,
+                        bounds=(lower_bounds, upper_bounds),
+                        max_nfev=5000,
+                        args=(points, candidate_p)
+                        )
+
+                if candidate_optfunc.cost < best_cost:
+                    best_candidate = candidate_x
+                    best_p = candidate_p
+                    best_cost = candidate_optfunc.cost
+
+            x_new = best_candidate
+            p = best_p
 
         # calculate sigma
         dists_new = distance_to_superquadric(points, x_new)
@@ -109,7 +147,8 @@ def points_to_superquadric(points, args=None):
         x = x_new
 
         #print(f"  iteration time: {(time.time() - iter_start):.3f}s")
-    print(f"\nCluster optimization time: {(time.time() - start_time):.3f}s")
+
+    print(f"Cluster optimization time: {(time.time() - start_time):.3f}s")
 
     # fix translation and scale
     x[8:11] = x[8:11] * scale + centroid
