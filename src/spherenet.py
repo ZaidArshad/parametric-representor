@@ -102,12 +102,13 @@ def visualise_spheres(sphere_params, reference_model):
     sphere_radii = np.abs(sphere_params[..., 3])
     scene = trimesh.Scene()
     if reference_model is not None:
-        scene.add_geometry(trimesh.PointCloud(reference_model))
+        scene.add_geometry(trimesh.PointCloud(reference_model, colors=[255, 255, 0, 255]))
     for center, radius in zip(sphere_centers, sphere_radii): 
-        sphere = trimesh.creation.icosphere(radius=radius, subdivisions=2)
+        sphere = trimesh.creation.icosphere(radius=radius, subdivisions=2, colors=[150, 150, 250, 170])
         sphere.apply_translation(center)
         scene.add_geometry(sphere)
-    scene.show()
+        
+    scene.show(background=[0, 0, 0, 255])
 
 
 def create_sphere_pc(sphere_param, res=10):
@@ -116,7 +117,7 @@ def create_sphere_pc(sphere_param, res=10):
 
     Args:
         sphere_param (torch.tensor): Sphere center and radius -> (x0, y0, z0, r).
-        res (int): How many sample to take from the sphere along an axis. 
+        res (int, optional): How many sample to take from the sphere along an axis. 
     Returns:
         (ndarray): Nx3 matrix of points to make the point cloud 
     """
@@ -159,15 +160,15 @@ def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=
         surface_points (list): Nx3 matrix of surface points of the ground truth.
         sdf_points (list): Kx3 matrix of sdf points of the ground truth.
         sdf_values (list): List of K signed distances of the ground truth.
-        num_spheres (int): L number of spheres to fit.
-        num_epochs (int): Number of iterations.
+        num_spheres (int, optional): L number of spheres to fit.
+        num_epochs (int, optional): Number of iterations.
     Returns:
         (list): Lx4 matrix of spheres parameters (x0, y0, z0, r).
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sdf_points = torch.from_numpy(sdf_points).float().to(device)
     sdf_values = torch.from_numpy(sdf_values).float().to(device)
-    surface_pointcloud = torch.from_numpy(surface_points.vertices).float().to(device)
+    surface_pointcloud = torch.from_numpy(surface_points).float().to(device)
 
     model = SphereNet(num_spheres=num_spheres).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
@@ -189,7 +190,7 @@ def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=
 
 
 # Test 
-# pcd_model = trimesh.load("data/dog/surface_points.ply")
+# pcd_model = trimesh.load("data/dog/surface_points.ply").vertices
 # sdf_model = np.load("data/dog/voxel_and_sdf.npz")
 # sdf_points = sdf_model["sdf_points"]
 # sdf_values = sdf_model["sdf_values"]
