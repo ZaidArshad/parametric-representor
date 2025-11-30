@@ -30,6 +30,55 @@ class Superquadric:
         # position
         self.position = (x[8], x[9], x[10])
 
+    def get_similars(self):
+        """ returns other superquadrics with a similar shape """
+
+        similars = []
+
+        # get similar superquadrics by axis-mismatch similarity
+        rotation_matrix_1 = self.rotation_matrix[:3, (1, 2, 0)]
+        rotation_matrix_2 = self.rotation_matrix[:3, (2, 0, 1)]
+
+        similars.append(Superquadric([
+            self.e2, self.e1,
+            self.a2, self.a3, self.a1,
+            *matrix_to_euler(rotation_matrix_1),
+            *self.position,
+            ]))
+
+        similars.append(Superquadric([
+            self.e2, self.e1,
+            self.a3, self.a1, self.a2,
+            *matrix_to_euler(rotation_matrix_2),
+            *self.position,
+            ]))
+
+        # get a similar superquadric by duality similarity
+        duality_similarity = np.abs(self.a1 / self.a2)
+
+        if 0.8 < duality_similarity and duality_similarity < 1.2:
+
+            # compute scaling factor s
+            if self.e2 <= 1:
+                s = (1 - np.sqrt(2)) * self.e2 + np.sqrt(2)
+            else:
+                s = (np.sqrt(2) / 2 - 1) * self.e2 + 2 - np.sqrt(2) / 2
+
+            # compute average axis scale
+            a = s * (self.a1 + self.a2) / 2
+
+            # compute the new rotation matrix
+            rotation_matrix = self.rotation_matrix[:3, :3] @ euler_to_matrix(0, 0, np.pi / 4)
+
+            similars.append(Superquadric([
+                self.e1, 2 - self.e2,
+                a, a, self.a3,
+                *matrix_to_euler(rotation_matrix),
+                *self.position,
+                ]))
+
+        return similars
+
     def create_mesh(self, u_res=50, v_res=50, colors=[150, 150, 250, 127]):
         """ creates a mesh of the superquadric surface """
         

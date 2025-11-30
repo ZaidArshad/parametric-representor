@@ -79,7 +79,7 @@ def points_to_superquadric(points, args=None):
 
     start_time = time.time()
     for iteration in range(20):
-        print(f"\nIteration {iteration+1}")
+        #print(f"\nIteration {iteration+1}")
         iter_start = time.time()
 
         # E step
@@ -108,8 +108,8 @@ def points_to_superquadric(points, args=None):
         sigma = sigma_new
         x = x_new
 
-        print(f"  iteration time: {(time.time() - iter_start):.3f}s")
-    print(f"\nTotal optimization time: {(time.time() - start_time):.3f}s")
+        #print(f"  iteration time: {(time.time() - iter_start):.3f}s")
+    print(f"\nCluster optimization time: {(time.time() - start_time):.3f}s")
 
     # fix translation and scale
     x[8:11] = x[8:11] * scale + centroid
