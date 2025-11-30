@@ -30,7 +30,7 @@ class Superquadric:
         # position
         self.position = (x[8], x[9], x[10])
 
-    def create_mesh(self, u_res=50, v_res=50):
+    def create_mesh(self, u_res=50, v_res=50, colors=[150, 150, 250, 127]):
         """ creates a mesh of the superquadric surface """
         
         # parameter ranges
@@ -72,7 +72,7 @@ class Superquadric:
         mesh.invert()
 
         # change color
-        mesh.visual.vertex_colors = [150, 150, 250, 170]
+        mesh.visual.vertex_colors = colors
 
         return mesh
 

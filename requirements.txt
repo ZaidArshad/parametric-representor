@@ -4,3 +4,4 @@ torch
 scipy
 trimesh
 scikit-image
+scikit-learn

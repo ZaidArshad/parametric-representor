@@ -1,28 +1,43 @@
 from optimization import *
 from utilities import *
 from superquadric import *
+from segmentation import *
+from random import randint
 import trimesh
 
 if __name__ == "__main__":
+
     # load point cloud
     pc = trimesh.load("data/hand/surface_points.ply")
     points = pc.vertices
 
-    # fit superquadric
-    args = {
-        'inlier_ratio': 0.999
-        }
+    # initialize the arguments to the fitting algorithm
+    args = {'inlier_ratio': 0.999}
+    min_cluster_size = 5
+    superquadrics = []
+    clusters = [points]
 
-    x, (outliers, inliers) = points_to_superquadric(points, args=args)
-    sq = Superquadric(x)
+    # recursively fit superquadrics to the point cloud
+    i = 0
+    while i < len(clusters):
 
-    # the outliers are the points not 'used' in the fitting for this superquadric
-    # we can use these to fit additional superquadrics later (after segmentation)
-    # we keep the inliers for visualization
+        # fit a superquadric to the current cluster of points
+        x, (outliers, inliers) = points_to_superquadric(clusters[i], args=args)
+        superquadrics.append(Superquadric(x))
 
-    # visualize fitted superquadric and remaining points
-    mesh = sq.create_mesh(u_res=100, v_res=100)
-    pc_outliers_mesh = trimesh.points.PointCloud(outliers, colors=[255, 255, 0, 255])
-    pc_inliers_mesh = trimesh.points.PointCloud(inliers, colors=[0, 0, 255, 255])
-    scene = trimesh.Scene([mesh, pc_outliers_mesh, pc_inliers_mesh])
+        # update the current cluster
+        clusters[i] = inliers
+
+        # add the clusters of outliers for subsequent iterations
+        if len(outliers) > 2:
+            clusters += cluster_points(outliers, min_cluster_size)
+
+        i += 1
+
+    # visualize fitted superquadrics
+    colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 127] for _ in clusters]
+    sq_meshes = [superquadrics[i].create_mesh(u_res=20, v_res=20, colors=colors[i]) for i in range(len(superquadrics))]
+    pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
+
+    scene = trimesh.Scene([*sq_meshes, *pc_meshes])
     scene.show(background=[0, 0, 0, 255])
