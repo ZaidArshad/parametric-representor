@@ -5,6 +5,8 @@ import numpy as np
 from superquadric import Superquadric
 import optimization
 import time
+import sys
+import csv
 
 def post_results(elapsed_t, pc, gt):
     """
@@ -19,6 +21,7 @@ def post_results(elapsed_t, pc, gt):
     chamfer_d = round(metrics.chamfer_distance(gt, pc), 4)
     elapsed_t = round(elapsed_t, 4)
     print(f"Elapsed: {elapsed_t}s, IoU: {iou}, Chamfer Distance: {chamfer_d}")
+    return (elapsed_t, chamfer_d, iou)
 
 def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=True):
     """
@@ -40,7 +43,7 @@ def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=T
     if show_visual:
         spherenet.visualise_spheres(sphere_params, reference_model=gt_surface_points)
 
-    post_results(elapsed_t, sphere_pc, gt_surface_points)
+    return post_results(elapsed_t, sphere_pc, gt_surface_points)
 
 def superquadric_test(gt_surface_points, show_visual=True):
     """
@@ -66,21 +69,47 @@ def superquadric_test(gt_surface_points, show_visual=True):
         scene = trimesh.Scene([mesh, pc_outliers_mesh, pc_inliers_mesh])
         scene.show(background=[0, 0, 0, 255])
 
-    post_results(elapsed_t, sq_pc, gt_surface_points)
+    return post_results(elapsed_t, sq_pc, gt_surface_points)
+
+def save_results(file_name, results):
+    print(f"Saving to {file_name}")
+    with open(file_name, "w") as file:
+        writer = csv.writer(file)
+        writer.writerows(results)
+
+def run_tests(test_type, save_to_file, iterations, show_visual, model_name):
+        # Ground truth
+        gt_surface_points = trimesh.load(f"data/{model_name}/surface_points.ply").vertices
+        gt_sdf_model = np.load(f"data/{model_name}/voxel_and_sdf.npz")
+        gt_sdf_points = gt_sdf_model["sdf_points"]
+        gt_sdf_values = gt_sdf_model["sdf_values"]
+
+        results = []
+        for i in range(iterations): 
+            result = (baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual) if test_type == "base" 
+                      else superquadric_test(gt_surface_points, show_visual))
+            results.append(result)
+        if (save_to_file):
+            output_file = f"results/result_{test_type}_{model_name}.csv"
+            save_results(output_file, results)
 
 if __name__ == "__main__":
-    model_name = "dog"
+    # Example python src/results.py all 1 0 5 dog
+    test_type = sys.argv[1] # all, base or superquadric
+    save_to_file = bool(int(sys.argv[2])) # 0 or 1
+    show_visual = bool(int(sys.argv[3])) # 0 or 1
+    iterations = int(sys.argv[4]) # number
+    model_names = sys.argv[5:] # space separated list
 
-    print(f"Testing {model_name} model.")
+    for model_name in model_names:
+        print(f"Testing {model_name} model.")
+        if test_type == "all":
+            run_tests("base", save_to_file, iterations, show_visual, model_name)
+            run_tests("superquadric", save_to_file, iterations, show_visual, model_name)
+        else:
+            run_tests(test_type, save_to_file, iterations, show_visual, model_name)
 
-    # Ground truth
-    gt_surface_points = trimesh.load(f"data/{model_name}/surface_points.ply").vertices
-    gt_sdf_model = np.load(f"data/{model_name}/voxel_and_sdf.npz")
-    gt_sdf_points = gt_sdf_model["sdf_points"]
-    gt_sdf_values = gt_sdf_model["sdf_values"]
-
-    baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values)
-    superquadric_test(gt_surface_points)
+    
 
     
 
