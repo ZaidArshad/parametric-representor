@@ -4,18 +4,21 @@ import trimesh
 import numpy as np
 from superquadric import Superquadric
 import optimization
+import time
 
-def test_pc_to_gt(pc, gt):
+def post_results(elapsed_t, pc, gt):
     """
     Test a point cloud to it's ground truth.
     
     Args
-        pc (list): Nx3 matrix of fitted point cloud
-        gt (list): Kx3 matrix of ground truth point cloud
+        elapsed_t (float): How long it took to generate the point cloud.
+        pc (list): Nx3 matrix of fitted point cloud.
+        gt (list): Kx3 matrix of ground truth point cloud.
     """
-    iou = metrics.pc_intersection_over_union(gt, pc)
-    chamfer_d = metrics.chamfer_distance(gt, pc)
-    print(f"Intersection over Union: {iou}, Chamfer Distance: {chamfer_d}")
+    iou = round(metrics.pc_intersection_over_union(gt, pc), 4)
+    chamfer_d = round(metrics.chamfer_distance(gt, pc), 4)
+    elapsed_t = round(elapsed_t, 4)
+    print(f"Elapsed: {elapsed_t}s, IoU: {iou}, Chamfer Distance: {chamfer_d}")
 
 def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=True):
     """
@@ -29,13 +32,15 @@ def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=T
     """
     print("Baseline test.")
 
+    start_t = time.perf_counter()
     sphere_params = spherenet.determine_sphere_params(gt_surface_points, gt_sdf_points, gt_sdf_values, num_epochs=50)
     sphere_pc = spherenet.sphere_params_to_pc(sphere_params.tolist())
+    elapsed_t = time.perf_counter() - start_t 
 
     if show_visual:
         spherenet.visualise_spheres(sphere_params, reference_model=gt_surface_points)
 
-    test_pc_to_gt(sphere_pc, gt_surface_points)
+    post_results(elapsed_t, sphere_pc, gt_surface_points)
 
 def superquadric_test(gt_surface_points, show_visual=True):
     """
@@ -47,10 +52,12 @@ def superquadric_test(gt_surface_points, show_visual=True):
     """
     print("Superquadric test.")
 
+    start_t = time.perf_counter()
     args = { 'inlier_ratio': 0.999 }
     superquadric_params, (outliers, inliers) = optimization.points_to_superquadric(gt_surface_points, args=args)
     sq = Superquadric(superquadric_params)
     sq_pc = sq.generate_points()
+    elapsed_t = time.perf_counter() - start_t 
 
     if show_visual:
         mesh = sq.create_mesh(u_res=100, v_res=100)
@@ -59,7 +66,7 @@ def superquadric_test(gt_surface_points, show_visual=True):
         scene = trimesh.Scene([mesh, pc_outliers_mesh, pc_inliers_mesh])
         scene.show(background=[0, 0, 0, 255])
 
-    test_pc_to_gt(sq_pc, gt_surface_points)
+    post_results(elapsed_t, sq_pc, gt_surface_points)
 
 if __name__ == "__main__":
     model_name = "dog"
