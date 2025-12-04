@@ -2,7 +2,7 @@ from sklearn.cluster import DBSCAN
 from scipy.spatial.distance import cdist
 import numpy as np
 
-def cluster_points(points, min_cluster_size):
+def cluster_points(points, min_cluster_size=1):
 
     # compute the distance from each point to each other point
     distances = cdist(points, points)

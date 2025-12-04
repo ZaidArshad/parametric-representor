@@ -39,7 +39,9 @@ def points_to_superquadrics(points, args=None):
 
         # add the clusters of outliers for subsequent iterations
         if len(outliers) > 2:
-            clusters += cluster_points(outliers, min_cluster_size)
+            for cluster in cluster_points(outliers):
+                if len(cluster) >= min_cluster_size:
+                    clusters.append(cluster)
 
         i += 1
 
