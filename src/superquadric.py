@@ -55,29 +55,32 @@ class Superquadric:
             *self.position,
             ])))
 
-        # get a similar superquadric by duality similarity
-        duality_similarity = np.abs(self.a1 / self.a2)
+        # find duals for the current superquadric and its other similars
+        for sq in (self, *similars):
 
-        if 0.8 < duality_similarity and duality_similarity < 1.2:
+            # get a similar superquadric by duality similarity
+            duality_similarity = np.abs(sq.a1 / sq.a2)
 
-            # compute scaling factor s
-            if self.e2 <= 1:
-                s = (1 - np.sqrt(2)) * self.e2 + np.sqrt(2)
-            else:
-                s = (np.sqrt(2) / 2 - 1) * self.e2 + 2 - np.sqrt(2) / 2
+            if 0.8 < duality_similarity and duality_similarity < 1.2:
 
-            # compute average axis scale
-            a = s * (self.a1 + self.a2) / 2
+                # compute scaling factor s
+                if sq.e2 <= 1:
+                    s = (1 - np.sqrt(2)) * sq.e2 + np.sqrt(2)
+                else:
+                    s = (np.sqrt(2) / 2 - 1) * sq.e2 + 2 - np.sqrt(2) / 2
 
-            # compute the new rotation matrix
-            rotation_matrix = self.rotation_matrix[:3, :3] @ euler_to_matrix(0, 0, np.pi / 4)
+                # compute average axis scale
+                a = s * (sq.a1 + sq.a2) / 2
 
-            similars.append(Superquadric(np.array([
-                self.e1, 2 - self.e2,
-                a, a, self.a3,
-                *matrix_to_euler(rotation_matrix),
-                *self.position,
-                ])))
+                # compute the new rotation matrix
+                rotation_matrix = sq.rotation_matrix[:3, :3] @ euler_to_matrix(0, 0, np.pi / 4)
+
+                similars.append(Superquadric(np.array([
+                    sq.e1, 2 - sq.e2,
+                    a, a, sq.a3,
+                    *matrix_to_euler(rotation_matrix),
+                    *sq.position,
+                    ])))
 
         return similars
 

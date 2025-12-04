@@ -153,7 +153,7 @@ def points_to_superquadric(points, args=None):
         previous_cost = optfunc.cost
 
         # when the solution stops improving, find similar superquadrics
-        if cost_change > -switching_threshold:
+        if abs(cost_change) < switching_threshold:
             similars = Superquadric(x_new).get_similars()
 
             best_candidate = x_new
