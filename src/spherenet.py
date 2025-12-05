@@ -56,7 +56,7 @@ class Decoder(nn.Module):
             nn.Linear(feat_ch, out_ch),
         )
         num_params = sum(p.numel() for p in self.parameters())
-        print("[num parameters: {}]".format(num_params))
+        # print("[num parameters: {}]".format(num_params))
 
     def forward(self, z):
         in1 = z
@@ -152,7 +152,7 @@ def sphere_params_to_pc(sphere_params):
     
     return pc
 
-def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=256, num_epochs=100):
+def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=256, num_epochs=100, output_loss=False):
     """
     Using SphereNet to fit spheres to a given sdf model. 
 
@@ -184,7 +184,9 @@ def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=
         loss = mseloss
         loss.backward()
         optimizer.step()
-        print(f"Iteration {i}, Loss: {loss.item()}")
+
+        if output_loss:
+            print(f"Iteration {i}, Loss: {loss.item()}")
 
     return sphere_params
 
