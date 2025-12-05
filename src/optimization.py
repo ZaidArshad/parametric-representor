@@ -76,6 +76,8 @@ def points_to_superquadric(points, args=None):
     # normalize points
     max_dist = np.max(np.abs(points))
     scale = max_dist / 10.0
+    if scale == 0:
+        scale = 1.0
     points = points / scale
 
     # initial rotation using PCA
@@ -96,7 +98,7 @@ def points_to_superquadric(points, args=None):
             ])
 
     # define lower and upper bounds for parameters
-    upper = 4 * np.max(np.abs(points))
+    upper = 1.0 * np.max(np.abs(points))
 
     lower_bounds = np.array([
         0.1, 0.1,                         # e1, e2
@@ -117,7 +119,7 @@ def points_to_superquadric(points, args=None):
     V = np.prod(bbox_max - bbox_min)
 
     # calculate prior outlier density (p0 = 1/V)
-    p0 = 1.0 / V
+    p0 = 1.0 / V if V > 0 else 0.0
 
     # calculate sigma (noise parameter)
     sigma = V**(1/3) / 10.0
@@ -141,7 +143,9 @@ def points_to_superquadric(points, args=None):
             x0=x,
             bounds=(lower_bounds, upper_bounds),
             max_nfev=5000,
-            args=(points, p)
+            args=(points, p),
+            xtol=1e-4,
+            ftol=1e-4
         )
 
         x_new = optfunc.x
@@ -176,7 +180,9 @@ def points_to_superquadric(points, args=None):
                         x0=candidate_x,
                         bounds=(lower_bounds, upper_bounds),
                         max_nfev=5000,
-                        args=(points, candidate_p)
+                        args=(points, candidate_p),
+                        xtol=1e-4,
+                        ftol=1e-4,
                         )
 
                 if candidate_optfunc.cost < best_cost:
@@ -195,7 +201,7 @@ def points_to_superquadric(points, args=None):
         sigma = sigma_new
         x = x_new
 
-    print(f"Cluster optimization time: {(time.time() - start_time):.3f}s")
+    # print(f"Cluster optimization time: {(time.time() - start_time):.3f}s")
 
     # fix translation and scale
     x[8:11] = x[8:11] * scale + centroid

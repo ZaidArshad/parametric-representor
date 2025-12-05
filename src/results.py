@@ -51,10 +51,10 @@ def superquadric_test(gt_surface_points, show_visual=True):
 
     # initialize the arguments to the fitting algorithm
     args = {
-            'inlier_ratio': 0.999,
-            'switching_threshold': 0.01,
-            'min_cluster_size': 10,
-            'iterations': 25,
+            'inlier_ratio': 0.99,
+            'switching_threshold': 0.005,
+            'min_cluster_size': 5,
+            'iterations': 3,
             }
 
     # get the optimized superquadrics
