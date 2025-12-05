@@ -6,6 +6,8 @@ class Superquadric:
     """ class for defining and visualizing superquadrics"""
     def __init__(self, x):
         """ x = [e1, e2, a1, a2, a3, rx, ry, rz, tx, ty, tz] """
+
+        self.x = x
         
         # shape
         self.e1 = x[0]
@@ -30,7 +32,59 @@ class Superquadric:
         # position
         self.position = (x[8], x[9], x[10])
 
-    def create_mesh(self, u_res=50, v_res=50):
+    def get_similars(self):
+        """ returns other superquadrics with a similar shape """
+
+        similars = []
+
+        # get similar superquadrics by axis-mismatch similarity
+        rotation_matrix_1 = self.rotation_matrix[:3, (1, 2, 0)]
+        rotation_matrix_2 = self.rotation_matrix[:3, (2, 0, 1)]
+
+        similars.append(Superquadric(np.array([
+            self.e2, self.e1,
+            self.a2, self.a3, self.a1,
+            *matrix_to_euler(rotation_matrix_1),
+            *self.position,
+            ])))
+
+        similars.append(Superquadric(np.array([
+            self.e2, self.e1,
+            self.a3, self.a1, self.a2,
+            *matrix_to_euler(rotation_matrix_2),
+            *self.position,
+            ])))
+
+        # find duals for the current superquadric and its other similars
+        for sq in (self, *similars):
+
+            # get a similar superquadric by duality similarity
+            duality_similarity = np.abs(sq.a1 / sq.a2)
+
+            if 0.8 < duality_similarity and duality_similarity < 1.2:
+
+                # compute scaling factor s
+                if sq.e2 <= 1:
+                    s = (1 - np.sqrt(2)) * sq.e2 + np.sqrt(2)
+                else:
+                    s = (np.sqrt(2) / 2 - 1) * sq.e2 + 2 - np.sqrt(2) / 2
+
+                # compute average axis scale
+                a = s * (sq.a1 + sq.a2) / 2
+
+                # compute the new rotation matrix
+                rotation_matrix = sq.rotation_matrix[:3, :3] @ euler_to_matrix(0, 0, np.pi / 4)
+
+                similars.append(Superquadric(np.array([
+                    sq.e1, 2 - sq.e2,
+                    a, a, sq.a3,
+                    *matrix_to_euler(rotation_matrix),
+                    *sq.position,
+                    ])))
+
+        return similars
+
+    def create_mesh(self, u_res=50, v_res=50, colors=[150, 150, 250, 127]):
         """ creates a mesh of the superquadric surface """
         
         # parameter ranges
@@ -58,7 +112,7 @@ class Superquadric:
 
         # build faces for the mesh
         faces = []
-        for i in range(u_res - 1):
+        for i in range(-1, u_res - 1):
             for j in range(v_res - 1):
                 idx = i * v_res + j
                 faces.append([idx, idx + 1, idx + v_res])
@@ -72,7 +126,7 @@ class Superquadric:
         mesh.invert()
 
         # change color
-        mesh.visual.vertex_colors = [150, 150, 250, 170]
+        mesh.visual.vertex_colors = colors
 
         return mesh
 

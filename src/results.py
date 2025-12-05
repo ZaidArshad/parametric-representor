@@ -1,7 +1,9 @@
 import spherenet
 import metrics
 import trimesh
+import argparse
 import numpy as np
+from random import randint
 from superquadric import Superquadric
 import optimization
 import time
@@ -11,7 +13,7 @@ import csv
 def post_results(elapsed_t, pc, gt):
     """
     Test a point cloud to it's ground truth.
-    
+
     Args
         elapsed_t (float): How long it took to generate the point cloud.
         pc (list): Nx3 matrix of fitted point cloud.
@@ -26,8 +28,8 @@ def post_results(elapsed_t, pc, gt):
 def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=True):
     """
     Baseline fitting test using SphereNet on ground truth.
-    
-    Args: 
+
+    Args:
         gt_surface_points (list): Nx3 matrix of ground truth surface points.
         gt_sdf_points (list): Kx3 matrix of ground truth sdf points.
         gt_sdf_values (list): List of ground truth K signed distances.
@@ -48,28 +50,41 @@ def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=T
 def superquadric_test(gt_surface_points, show_visual=True):
     """
     Superquadric fitting test on ground truth point cloud.
-    
-    Args: 
+
+    Args:
         gt_surface_points (list): Nx3 matrix of ground truth surface points.
         show_visual (boolean, optional): Whether to show the visual comparison between the fit and ground truth.
     """
     print("Superquadric test.")
 
+    # initialize the arguments to the fitting algorithm
+    args = {
+            'inlier_ratio': 0.99,
+            'switching_threshold': 0.005,
+            'min_cluster_size': 5,
+            'iterations': 3,
+            }
+
     start_t = time.perf_counter()
-    args = { 'inlier_ratio': 0.999 }
-    superquadric_params, (outliers, inliers) = optimization.points_to_superquadric(gt_surface_points, args=args)
-    sq = Superquadric(superquadric_params)
-    sq_pc = sq.generate_points()
+
+    # get the optimized superquadrics
+    superquadric_params, clusters = optimization.points_to_superquadrics(gt_surface_points, args=args)
+    superquadrics = [Superquadric(x) for x in superquadric_params]
+    
     elapsed_t = time.perf_counter() - start_t 
 
+    # visualize fitted superquadrics
     if show_visual:
-        mesh = sq.create_mesh(u_res=100, v_res=100)
-        pc_outliers_mesh = trimesh.points.PointCloud(outliers, colors=[255, 255, 0, 255])
-        pc_inliers_mesh = trimesh.points.PointCloud(inliers, colors=[0, 0, 255, 255])
-        scene = trimesh.Scene([mesh, pc_outliers_mesh, pc_inliers_mesh])
+        colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 127] for _ in clusters]
+        sq_meshes = [superquadrics[i].create_mesh(20, 20, colors[i]) for i in range(len(superquadrics))]
+        pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
+
+        scene = trimesh.Scene([*sq_meshes, *pc_meshes])
         scene.show(background=[0, 0, 0, 255])
 
-    return post_results(elapsed_t, sq_pc, gt_surface_points)
+    # get a combined point cloud of all superquadrics
+    superquadric_points = np.concatenate([sq.generate_points() for sq in superquadrics])
+    return post_results(elapsed_t, superquadric_points, gt_surface_points)
 
 def save_results(file_name, results):
     print(f"Saving to {file_name}")
@@ -108,9 +123,3 @@ if __name__ == "__main__":
             run_tests("superquadric", save_to_file, iterations, show_visual, model_name)
         else:
             run_tests(test_type, save_to_file, iterations, show_visual, model_name)
-
-    
-
-    
-
-

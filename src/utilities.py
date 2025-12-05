@@ -3,6 +3,9 @@ from scipy.spatial.transform import Rotation as R
 
 def PCA(points):
     """ performs pca on a set of points """
+    if len(points) < 2:
+        return np.eye(3)
+
     # move to origin
     mean = np.mean(points, axis=0)
     pts = points - mean
@@ -53,11 +56,19 @@ def distance_to_superquadric(points, x):
     r_norm = np.sqrt(np.sum(point_c ** 2, 1))
     
     # superquadric implicit function
-    dist = r_norm * np.abs((
-        (((point_c[:, 0] / x[2]) ** 2) ** (1 / x[1]) +
-         ((point_c[:, 1] / x[3]) ** 2) ** (1 / x[1])) ** (x[1] / x[0]) +
-        ((point_c[:, 2] / x[4]) ** 2) ** (1 / x[0])) ** (-x[0] / 2) - 1
+    e1 = x[0] if abs(x[0]) > 1e-10 else 1e-10
+    e2 = x[1] if abs(x[1]) > 1e-10 else 1e-10
+    a1 = x[2] if abs(x[2]) > 1e-10 else 1e-10
+    a2 = x[3] if abs(x[3]) > 1e-10 else 1e-10
+    a3 = x[4] if abs(x[4]) > 1e-10 else 1e-10
+
+    implicit_val = (
+        (((point_c[:, 0] / a1) ** 2) ** (1 / e2) +
+         ((point_c[:, 1] / a2) ** 2) ** (1 / e2)) ** (e2 / e1) +
+        ((point_c[:, 2] / a3) ** 2) ** (1 / e1)
     )
+    implicit_val = np.maximum(implicit_val, 1e-20)
+    dist = r_norm * np.abs(implicit_val ** (-e1 / 2) - 1)
     return dist
 
 def signed_distance_to_superquadric(points, x):
@@ -84,6 +95,7 @@ def signed_distance_to_superquadric(points, x):
 
 def gaussian_3d_from_dist(dist, sigma2):
     """ computes the gaussian probability density from distances in 3D """
+    sigma2 = np.maximum(sigma2, 1e-10)
     c = (2.0 * np.pi * sigma2) ** (-1.5)
     return c * np.exp(-0.5 * dist**2 / sigma2)
 
@@ -98,5 +110,16 @@ def cost_function(x, points, p):
     """ cost function for least squares optimization """
     distances = distance_to_superquadric(points, x)
     weights = np.sqrt(np.clip(p, 1e-12, None))
-    residuals = weights * distances
+    residuals = (weights * distances)
+
+    # penalty based on scale extending beyond the point cloud bounds
+    min_point, max_point = bounding_box(points)
+    for i in range(3):
+        # if the scale is less than the bounding box size, no penalty
+        if x[2 + i] < (max_point[i] - min_point[i]):
+            continue
+        # else add a penalty proportional to the excess size
+        else:
+            penalty = (x[2 + i] - (max_point[i] - min_point[i]))
+            residuals += penalty
     return residuals
