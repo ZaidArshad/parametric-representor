@@ -89,7 +89,7 @@ def signed_distance_to_superquadric(points, x):
         ((point_c[:, 2] / x[4]) ** 2) ** (1 / x[0])
     ) ** (-x[0] / 2)
 
-    dist = r_norm * (f - 1)
+    dist = r_norm * (1 - f)
     return dist
 
 
