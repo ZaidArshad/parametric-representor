@@ -248,9 +248,8 @@ def points_to_superquadric(points, args=None, x0=None):
 
     # generate outliers (distance > threshold and inside superquadric)
     points_original = points * scale + centroid
-    dists = distance_to_superquadric(points_original, x)
     signed_dists = signed_distance_to_superquadric(points_original, x)
-    outlier_mask = (dists > 0.03) & (signed_dists < 0)
+    outlier_mask = (signed_dists > 0.03)
     outliers = points_original[outlier_mask]
     inliers = points_original[~outlier_mask]
 
