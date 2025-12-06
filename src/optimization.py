@@ -25,27 +25,63 @@ def points_to_superquadrics(points, args=None):
     min_cluster_size = 10 if args is None else args["min_cluster_size"]
 
     superquadrics = []
-    clusters = [points]
+    past_clusters = []
 
-    i = 0
-    while i < len(clusters):
+    future_clusters = [points]
+
+    for cluster in future_clusters:
 
         # fit a superquadric to the current cluster of points
-        x, (outliers, inliers) = points_to_superquadric(clusters[i], args=args)
-        superquadrics.append(x)
+        x, (outliers, inliers) = points_to_superquadric(cluster, args=args)
 
-        # update the current cluster
-        clusters[i] = inliers
+        # try splitting the superquadric
+        splits, origin, normal = Superquadric(x).get_splits()
+
+        if len(splits) == 2:
+            split_points = planar_split(np.array(cluster), origin, normal)
+
+            if len(split_points[0]) >= min_cluster_size and len(split_points[1]) >= min_cluster_size:
+
+                split_x = [None, None]
+                split_outliers = [None, None]
+                split_inliers = [None, None]
+
+                # optimize the split parts separately
+                for i in range(2):
+                    split_x[i], (split_outliers[i], split_inliers[i]) = points_to_superquadric(split_points[i], args=args, x0=splits[i].x)
+
+                #all_split_outliers = np.concatenate(split_outliers)
+
+                split_volume = np.prod(split_x[0][2:5]) + np.prod(split_x[1][2:5])
+                single_volume = np.prod(x[2:5])
+
+                if split_volume < single_volume:
+                    for i in range(2):
+                        superquadrics.append(split_x[i])
+                        past_clusters.append(split_inliers[i])
+                    outliers = split_outliers
+                    print('split')
+                else:
+                    superquadrics.append(x)
+                    past_clusters.append(inliers)
+                    outliers = [outliers]
+            else:
+                superquadrics.append(x)
+                past_clusters.append(inliers)
+                outliers = [outliers]
+        else:
+            superquadrics.append(x)
+            past_clusters.append(inliers)
+            outliers = [outliers]
 
         # add the clusters of outliers for subsequent iterations
-        if len(outliers) > 2:
-            for cluster in cluster_points(outliers):
-                if len(cluster) >= min_cluster_size:
-                    clusters.append(cluster)
+        for outlier in outliers:
+            if len(outlier) >= min_cluster_size:
+                for mini_cluster in cluster_points(outlier):
+                    if len(mini_cluster) >= min_cluster_size:
+                        future_clusters.append(mini_cluster)
 
-        i += 1
-
-    return (superquadrics, clusters)
+    return superquadrics, past_clusters
 
 def points_to_superquadric(points, args=None, x0=None):
     """
