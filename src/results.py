@@ -60,9 +60,9 @@ def superquadric_test(gt_surface_points, show_visual=True):
     # initialize the arguments to the fitting algorithm
     args = {
             'inlier_ratio': 0.99,
-            'switching_threshold': 0.005,
-            'min_cluster_size': 5,
-            'iterations': 3,
+            'switching_threshold': 0.01,
+            'min_cluster_size': 15,
+            'iterations': 25,
             }
 
     start_t = time.perf_counter()
@@ -75,7 +75,7 @@ def superquadric_test(gt_surface_points, show_visual=True):
 
     # visualize fitted superquadrics
     if show_visual:
-        colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 127] for _ in clusters]
+        colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 255] for _ in clusters]
         sq_meshes = [superquadrics[i].create_mesh(20, 20, colors[i]) for i in range(len(superquadrics))]
         pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
 
