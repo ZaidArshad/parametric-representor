@@ -11,8 +11,9 @@ from skopt.space import Real, Integer
 import optimization
 import metrics
 from superquadric import Superquadric
+from results import superquadric_test
 
-def run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size):
+def run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size, n_clusters):
     """
     Runs the superquadric fitting process for a given model and parameters, 
     and returns the IoU and Chamfer Distance.
@@ -30,7 +31,8 @@ def run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size):
         'inlier_ratio': inlier_ratio,
         'switching_threshold': switching_threshold,
         'min_cluster_size': int(min_cluster_size),
-        'iterations': 5,
+        'n_clusters': int(n_clusters),
+        'iterations': 10,
     }
 
     # run the fitting
@@ -59,13 +61,13 @@ def objective_function(params, model_name):
     """
     The objective function for Bayesian optimization
     """
-    inlier_ratio, switching_threshold, min_cluster_size = params
+    inlier_ratio, switching_threshold, min_cluster_size, n_clusters = params
     
     # run the test
-    iou, chamfer = run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size)
+    iou, chamfer = run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size, n_clusters)
     
     iou_str = f"{iou:.4f}" if iou is not None else "Failed"
-    print(f"    params: inlier ratio={inlier_ratio:.4f}, switching threshold={switching_threshold:.6f}, min cluster size={min_cluster_size}. IoU: {iou_str}")
+    print(f"    params: inlier ratio={inlier_ratio:.4f}, switching threshold={switching_threshold:.6f}, min cluster size={min_cluster_size}, n_clusters={n_clusters}. IoU: {iou_str}")
 
     if iou is None:
         # penalize failed runs
@@ -92,9 +94,11 @@ def main():
         Real(1e-6, 0.1, name='switching_threshold'), 
         
         # discrete: min cluster size
-        Integer(1, 100, name='min_cluster_size')
+        Integer(1, 100, name='min_cluster_size'),
 
         # if we add more parameters, we can add them here
+
+        Integer(1, 100, name='n_clusters'),
     ]
     
     start_time = time.time()
@@ -120,12 +124,13 @@ def main():
     best_params = res_bo.x
     
     # run the final best test to get the chamfer distance and display metrics
-    final_iou, final_chamfer = run_test(model, best_params[0], best_params[1], best_params[2])
+    final_iou, final_chamfer = run_test(model, best_params[0], best_params[1], best_params[2], best_params[3])
 
     print(f"\nbest parameters found for {model}:")
     print(f"  inlier ratio: {best_params[0]:.4f}")
     print(f"  switching threshold: {best_params[1]:.6f}")
     print(f"  min cluster size: {int(best_params[2])}")
+    print(f"  n clusters: {int(best_params[3])}")
     print(f"  IoU: {final_iou:.4f}")
     print(f"  chamfer distance: {final_chamfer:.4f}")
     print("\nVisualizing best result...")
@@ -137,19 +142,11 @@ def main():
         'inlier_ratio': best_params[0],
         'switching_threshold': best_params[1],
         'min_cluster_size': int(best_params[2]),
-        'iterations': 5,
+        'n_clusters': int(best_params[3]),
+        'iterations': 10,
     }
-    
-    superquadric_params, clusters = optimization.points_to_superquadrics(gt_surface_points, args=best_args)
-    superquadrics = [Superquadric(x) for x in superquadric_params]
-    
-    colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 127] for _ in clusters]
-    sq_meshes = [superquadrics[i].create_mesh(20, 20, colors[i]) for i in range(len(superquadrics))]
-    pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
 
-    scene = trimesh.Scene([*sq_meshes, *pc_meshes])
-
-    scene.show(background=[0, 0, 0, 255])
+    superquadric_test(gt_surface_points, show_visual=True, args=best_args)
 
 if __name__ == "__main__":
     main()

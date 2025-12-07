@@ -23,6 +23,7 @@ def points_to_superquadrics(points, args=None):
     """
 
     min_cluster_size = 10 if args is None else args["min_cluster_size"]
+    n_clusters = 8 if args is None else args["n_clusters"]
 
     superquadrics = []
     past_clusters = []
@@ -60,7 +61,6 @@ def points_to_superquadrics(points, args=None):
                         superquadrics.append(split_x[i])
                         past_clusters.append(split_inliers[i])
                     outliers = split_outliers
-                    print('split')
                 else:
                     superquadrics.append(x)
                     past_clusters.append(inliers)
@@ -77,7 +77,7 @@ def points_to_superquadrics(points, args=None):
         # add the clusters of outliers for subsequent iterations
         for outlier in outliers:
             if len(outlier) >= min_cluster_size:
-                for mini_cluster in cluster_points(outlier):
+                for mini_cluster in cluster_points(outlier, n_clusters):
                     if len(mini_cluster) >= min_cluster_size:
                         future_clusters.append(mini_cluster)
 
@@ -239,8 +239,6 @@ def points_to_superquadric(points, args=None, x0=None):
 
         sigma = sigma_new
         x = x_new
-
-    # print(f"Cluster optimization time: {(time.time() - start_time):.3f}s")
 
     # fix translation and scale
     x[8:11] = x[8:11] * scale + centroid

@@ -47,7 +47,7 @@ def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=T
 
     return post_results(elapsed_t, sphere_pc, gt_surface_points)
 
-def superquadric_test(gt_surface_points, show_visual=True):
+def superquadric_test(gt_surface_points, show_visual=True, args=None):
     """
     Superquadric fitting test on ground truth point cloud.
 
@@ -60,10 +60,11 @@ def superquadric_test(gt_surface_points, show_visual=True):
     # initialize the arguments to the fitting algorithm
     args = {
             'inlier_ratio': 0.99,
-            'switching_threshold': 0.01,
-            'min_cluster_size': 15,
-            'iterations': 25,
-            }
+            'switching_threshold': 0.05,
+            'min_cluster_size': 10,
+            'iterations': 10,
+            'n_clusters': 20,
+            } if args is None else args
 
     start_t = time.perf_counter()
 
