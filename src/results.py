@@ -9,6 +9,7 @@ import optimization
 import time
 import sys
 import csv
+import parameter_search
 
 def post_results(elapsed_t, pc, gt):
     """
@@ -57,18 +58,10 @@ def superquadric_test(gt_surface_points, show_visual=True):
     """
     print("Superquadric test.")
 
-    # initialize the arguments to the fitting algorithm
-    args = {
-            'inlier_ratio': 0.99,
-            'switching_threshold': 0.01,
-            'min_cluster_size': 15,
-            'iterations': 25,
-            }
-
     start_t = time.perf_counter()
 
     # get the optimized superquadrics
-    superquadric_params, clusters = optimization.points_to_superquadrics(gt_surface_points, args=args)
+    superquadric_params, clusters =     superquadric_params, clusters = parameter_search.optimize_superquadrics(gt_surface_points)
     superquadrics = [Superquadric(x) for x in superquadric_params]
     
     elapsed_t = time.perf_counter() - start_t 
