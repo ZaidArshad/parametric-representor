@@ -9,6 +9,7 @@ import optimization
 import time
 import sys
 import csv
+import parameter_search
 
 def post_results(elapsed_t, pc, gt):
     """
@@ -47,7 +48,7 @@ def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=T
 
     return post_results(elapsed_t, sphere_pc, gt_surface_points)
 
-def superquadric_test(gt_surface_points, show_visual=True, args=None):
+def superquadric_test(gt_surface_points, show_visual=True):
     """
     Superquadric fitting test on ground truth point cloud.
 
@@ -57,21 +58,12 @@ def superquadric_test(gt_surface_points, show_visual=True, args=None):
     """
     print("Superquadric test.")
 
-    # initialize the arguments to the fitting algorithm
-    args = {
-            'inlier_ratio': 0.99,
-            'switching_threshold': 0.05,
-            'min_cluster_size': 10,
-            'iterations': 10,
-            'n_clusters': 20,
-            } if args is None else args
-
     start_t = time.perf_counter()
 
     # get the optimized superquadrics
-    superquadric_params, clusters = optimization.points_to_superquadrics(gt_surface_points, args=args)
+    superquadric_params, clusters = parameter_search.optimize_superquadrics(gt_surface_points)
     superquadrics = [Superquadric(x) for x in superquadric_params]
-    
+
     elapsed_t = time.perf_counter() - start_t 
 
     # visualize fitted superquadrics
