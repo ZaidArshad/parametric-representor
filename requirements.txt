@@ -6,3 +6,4 @@ trimesh
 scikit-image
 scikit-learn
 scikit-optimize
+pandas
