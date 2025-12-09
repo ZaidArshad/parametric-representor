@@ -30,10 +30,18 @@ def points_to_superquadrics(points, args=None):
 
     future_clusters = [points]
 
-    for cluster in future_clusters:
+    while len(future_clusters) > 0:
+
+        cluster = future_clusters.pop()
+
+        if len(cluster) < min_cluster_size:
+            continue
 
         # fit a superquadric to the current cluster of points
         x, (outliers, inliers) = points_to_superquadric(cluster, args=args)
+
+        if len(inliers) == 0:
+            continue
 
         # try splitting the superquadric
         splits, origin, normal = Superquadric(x).get_splits()
@@ -50,8 +58,6 @@ def points_to_superquadrics(points, args=None):
                 # optimize the split parts separately
                 for i in range(2):
                     split_x[i], (split_outliers[i], split_inliers[i]) = points_to_superquadric(split_points[i], args=args, x0=splits[i].x)
-
-                #all_split_outliers = np.concatenate(split_outliers)
 
                 split_volume = np.prod(split_x[0][2:5]) + np.prod(split_x[1][2:5])
                 single_volume = np.prod(x[2:5])

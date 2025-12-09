@@ -78,10 +78,10 @@ def optimize_superquadrics(points):
         Real(0.7, 1.0 - 1e-6, name='inlier_ratio'),
 
         # continuous switching threshold
-        Real(0.001, 0.25, name='switching_threshold'),
+        Real(0.001, 0.15, name='switching_threshold'),
 
         # discrete: min cluster size
-        Integer(1, 100, name='min_cluster_size'),
+        Integer(2, 100, name='min_cluster_size'),
 
         # discrete: number of clusters
         Integer(1, 50, name='n_clusters'),
