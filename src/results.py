@@ -70,9 +70,10 @@ def superquadric_test(gt_surface_points, show_visual=True):
     if show_visual:
         colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 255] for _ in clusters]
         sq_meshes = [superquadrics[i].create_mesh(20, 20, colors[i]) for i in range(len(superquadrics))]
-        pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
+        #pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
+        gt_mesh = trimesh.points.PointCloud(gt_surface_points, [255, 127, 127, 127])
 
-        scene = trimesh.Scene([*sq_meshes, *pc_meshes])
+        scene = trimesh.Scene([*sq_meshes, gt_mesh])
         scene.show(background=[255, 255, 255, 255])
 
     # get a combined point cloud of all superquadrics
