@@ -6,7 +6,7 @@ import numpy as np
 def cluster_points(points, n_clusters, min_cluster_size=1):
 
     if len(points) <= n_clusters:
-        return [points]
+        return [np.array([point]) for point in points]
 
     # compute the distance from each point to each other point
     #distances = cdist(points, points)
