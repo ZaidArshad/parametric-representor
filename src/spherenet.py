@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import trimesh
+from random import randint
 from dgcnn import DGCNNFeat
 
 def bsmin(a, dim, k=22.0, keepdim=False):
@@ -102,13 +103,14 @@ def visualise_spheres(sphere_params, reference_model):
     sphere_radii = np.abs(sphere_params[..., 3])
     scene = trimesh.Scene()
     if reference_model is not None:
-        scene.add_geometry(trimesh.PointCloud(reference_model, colors=[255, 255, 0, 255]))
+        scene.add_geometry(trimesh.PointCloud(reference_model, colors=[255, 0, 0, 50]))
     for center, radius in zip(sphere_centers, sphere_radii): 
-        sphere = trimesh.creation.icosphere(radius=radius, subdivisions=2, colors=[150, 150, 250, 170])
+        sphere = trimesh.creation.icosphere(radius=radius, subdivisions=2)
+        sphere.visual.vertex_colors = [randint(0, 255), randint(0, 255), randint(0, 255), 127]
         sphere.apply_translation(center)
         scene.add_geometry(sphere)
         
-    scene.show(background=[0, 0, 0, 255])
+    scene.show(background=[255, 255, 255, 255])
 
 
 def create_sphere_pc(sphere_param, res=10):

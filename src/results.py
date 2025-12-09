@@ -1,7 +1,7 @@
 import spherenet
 import metrics
 import trimesh
-import argparse
+import os
 import numpy as np
 from random import randint
 from superquadric import Superquadric
@@ -80,7 +80,7 @@ def superquadric_test(gt_surface_points, show_visual=True):
         pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
 
         scene = trimesh.Scene([*sq_meshes, *pc_meshes])
-        scene.show(background=[0, 0, 0, 255])
+        scene.show(background=[255, 255, 255, 255])
 
     # get a combined point cloud of all superquadrics
     superquadric_points = np.concatenate([sq.generate_points() for sq in superquadrics])
@@ -88,9 +88,23 @@ def superquadric_test(gt_surface_points, show_visual=True):
 
 def save_results(file_name, results):
     print(f"Saving to {file_name}")
-    with open(file_name, "w") as file:
+    with open(file_name, "w", newline="") as file:
         writer = csv.writer(file)
         writer.writerows(results)
+
+def summarize_results():
+    summary_file_name = "results/summary.csv"
+    if (os.path.exists(summary_file_name)):
+        os.remove(summary_file_name)
+    summaries = []
+    for file_name in os.listdir("results"):
+        with open(f"results/{file_name}", "r") as file:
+            reader = csv.reader(file)
+            rows = np.array([[float(s) for s in row] for row in reader])
+            summary = (file_name, np.mean(rows, axis=0))
+            summaries.append(summary)
+    save_results(summary_file_name, summaries)
+
 
 def run_tests(test_type, save_to_file, iterations, show_visual, model_name):
         # Ground truth
@@ -123,3 +137,6 @@ if __name__ == "__main__":
             run_tests("superquadric", save_to_file, iterations, show_visual, model_name)
         else:
             run_tests(test_type, save_to_file, iterations, show_visual, model_name)
+
+    if (save_to_file):
+        summarize_results()
