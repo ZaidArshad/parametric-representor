@@ -188,12 +188,13 @@ def points_to_superquadric(points, args=None, x0=None):
         )
 
         x_new = optfunc.x
+        cost = optfunc.cost
 
         # S step
         if previous_cost == np.inf: cost_change = -1
-        else: cost_change = (optfunc.cost - previous_cost) / previous_cost
+        else: cost_change = (cost - previous_cost) / previous_cost
 
-        previous_cost = optfunc.cost
+        previous_cost = cost
 
         # when the solution stops improving, find similar superquadrics
         if abs(cost_change) < switching_threshold:
@@ -201,7 +202,7 @@ def points_to_superquadric(points, args=None, x0=None):
 
             best_candidate = x_new
             best_p = p
-            best_cost = optfunc.cost
+            best_cost = cost
 
             # run a single EM step on each candidate and select the best one
             for candidate in similars:
@@ -230,6 +231,7 @@ def points_to_superquadric(points, args=None, x0=None):
                     best_cost = candidate_optfunc.cost
 
             x_new = best_candidate
+            cost = best_cost
             p = best_p
 
         # calculate sigma
@@ -239,6 +241,10 @@ def points_to_superquadric(points, args=None, x0=None):
 
         sigma = sigma_new
         x = x_new
+
+        # if no switch improves the fit, then terminate early
+        if abs((cost - previous_cost) / previous_cost) > switching_threshold:
+            break
 
     # fix translation and scale
     x[8:11] = x[8:11] * scale + centroid
