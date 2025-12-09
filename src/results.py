@@ -61,9 +61,9 @@ def superquadric_test(gt_surface_points, show_visual=True):
     start_t = time.perf_counter()
 
     # get the optimized superquadrics
-    superquadric_params, clusters =     superquadric_params, clusters = parameter_search.optimize_superquadrics(gt_surface_points)
+    superquadric_params, clusters = parameter_search.optimize_superquadrics(gt_surface_points)
     superquadrics = [Superquadric(x) for x in superquadric_params]
-    
+
     elapsed_t = time.perf_counter() - start_t 
 
     # visualize fitted superquadrics

@@ -84,6 +84,31 @@ class Superquadric:
 
         return similars
 
+    def get_splits(self):
+        """ returns two superquadrics approximating the current superquadric and the origin and normal vector of the plane between them """
+
+        splits = []
+
+        normal = (self.rotation_matrix @ [0, 0, 1, 0])[:3]
+
+        if self.e1 < 0.5:
+
+            splits.append(Superquadric(np.array([
+                self.e1, self.e2,
+                self.a1, self.a2, self.a3 / 2,
+                *self.rotation,
+                *(self.position + normal * self.a3 / 2),
+                ])))
+
+            splits.append(Superquadric(np.array([
+                self.e1, self.e2,
+                self.a1, self.a2, self.a3 / 2,
+                *self.rotation,
+                *(self.position - normal * self.a3 / 2),
+                ])))
+
+        return splits, self.position, normal
+
     def create_mesh(self, u_res=50, v_res=50, colors=[150, 150, 250, 127]):
         """ creates a mesh of the superquadric surface """
         

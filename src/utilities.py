@@ -23,6 +23,13 @@ def PCA(points):
         eigenvectors[:, 2] *= -1
     return eigenvectors
 
+def planar_split(points, origin, normal):
+    """ divides the points into two clusters across the plane with given origin and normal """
+
+    mask = np.dot(points - origin, normal) > 0
+
+    return points[mask], points[~mask]
+
 def bounding_box(points):
     """ computes the axis-aligned bounding box of a set of points """
     min_point = np.min(points, axis=0)

@@ -1,26 +1,32 @@
-from sklearn.cluster import DBSCAN
-from scipy.spatial.distance import cdist
+#from sklearn.cluster import DBSCAN
+from sklearn.cluster import KMeans
+#from scipy.spatial.distance import cdist
 import numpy as np
 
-def cluster_points(points, min_cluster_size=1):
+def cluster_points(points, n_clusters, min_cluster_size=1):
+
+    if len(points) <= n_clusters:
+        return [np.array([point]) for point in points]
 
     # compute the distance from each point to each other point
-    distances = cdist(points, points)
+    #distances = cdist(points, points)
 
     # exclude distances between identical points
-    distances[distances == 0] = np.inf
+    #distances[distances == 0] = np.inf
 
     # find the distance from each point to its furthest neighbour, then get the
     # greatest of those distances among all points
-    max_min_distance = np.max(np.min(distances, 0))
+    #max_min_distance = np.median(np.min(distances, 0)) * 4
 
     # if the computed distance is bad, then just return the input points
-    if max_min_distance == 0 or max_min_distance == np.inf:
-        return [points]
+    #if max_min_distance == 0 or max_min_distance == np.inf:
+        #return [points]
 
     # use the DBSCAN clustering algorithm to get point clusters
-    dbscan = DBSCAN(eps=max_min_distance, min_samples=min_cluster_size).fit(points)
-    labels = dbscan.labels_
+    #dbscan = DBSCAN(eps=max_min_distance, min_samples=min_cluster_size).fit(points)
+    #labels = dbscan.labels_
+    kmeans = KMeans(n_clusters=n_clusters).fit(points)
+    labels = kmeans.labels_
 
     # initialize the clusters, ignoring the outlier cluster with index -1
     # since we assume there are no outliers, then the outlier cluster is empty
@@ -29,6 +35,6 @@ def cluster_points(points, min_cluster_size=1):
     # assign each point to its cluster
     for i in range(len(points)):
         if labels[i] >= 0:
-            clusters[labels[i]].append(points[i])
+            clusters[labels[i] - 1].append(points[i])
 
     return clusters

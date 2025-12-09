@@ -23,31 +23,73 @@ def points_to_superquadrics(points, args=None):
     """
 
     min_cluster_size = 10 if args is None else args["min_cluster_size"]
+    n_clusters = 8 if args is None else args["n_clusters"]
 
     superquadrics = []
-    clusters = [points]
+    past_clusters = []
 
-    i = 0
-    while i < len(clusters):
+    future_clusters = [points]
+
+    while len(future_clusters) > 0:
+
+        cluster = future_clusters.pop()
+
+        if len(cluster) < min_cluster_size:
+            continue
 
         # fit a superquadric to the current cluster of points
-        x, (outliers, inliers) = points_to_superquadric(clusters[i], args=args)
-        superquadrics.append(x)
+        x, (outliers, inliers) = points_to_superquadric(cluster, args=args)
 
-        # update the current cluster
-        clusters[i] = inliers
+        if len(inliers) == 0:
+            continue
+
+        # try splitting the superquadric
+        splits, origin, normal = Superquadric(x).get_splits()
+
+        if len(splits) == 2:
+            split_points = planar_split(np.array(cluster), origin, normal)
+
+            if len(split_points[0]) >= min_cluster_size and len(split_points[1]) >= min_cluster_size:
+
+                split_x = [None, None]
+                split_outliers = [None, None]
+                split_inliers = [None, None]
+
+                # optimize the split parts separately
+                for i in range(2):
+                    split_x[i], (split_outliers[i], split_inliers[i]) = points_to_superquadric(split_points[i], args=args, x0=splits[i].x)
+
+                split_volume = np.prod(split_x[0][2:5]) + np.prod(split_x[1][2:5])
+                single_volume = np.prod(x[2:5])
+
+                if split_volume < single_volume:
+                    for i in range(2):
+                        superquadrics.append(split_x[i])
+                        past_clusters.append(split_inliers[i])
+                    outliers = split_outliers
+                else:
+                    superquadrics.append(x)
+                    past_clusters.append(inliers)
+                    outliers = [outliers]
+            else:
+                superquadrics.append(x)
+                past_clusters.append(inliers)
+                outliers = [outliers]
+        else:
+            superquadrics.append(x)
+            past_clusters.append(inliers)
+            outliers = [outliers]
 
         # add the clusters of outliers for subsequent iterations
-        if len(outliers) > 2:
-            for cluster in cluster_points(outliers):
-                if len(cluster) >= min_cluster_size:
-                    clusters.append(cluster)
+        for outlier in outliers:
+            if len(outlier) >= min_cluster_size:
+                for mini_cluster in cluster_points(outlier, n_clusters):
+                    if len(mini_cluster) >= min_cluster_size:
+                        future_clusters.append(mini_cluster)
 
-        i += 1
+    return superquadrics, past_clusters
 
-    return (superquadrics, clusters)
-
-def points_to_superquadric(points, args=None):
+def points_to_superquadric(points, args=None, x0=None):
     """
     optimizes superquadric parameters to fit a set of 3D points
 
@@ -57,6 +99,7 @@ def points_to_superquadric(points, args=None):
         - inlier_ratio: expected ratio of inliers in the point cloud
         - switching_threshold: threshold for relative change in cost that triggers switching
         - iterations: maximum number of optimization iterations
+        x0: optional initial superquadric
 
     outputs:
         x: optimized superquadric parameters
@@ -82,19 +125,21 @@ def points_to_superquadric(points, args=None):
 
     # initial rotation using PCA
     R_init = PCA(points)
-    initial_rotation = matrix_to_euler(R_init)
 
     # initial scale using rotated bounding box
     rotated_points = points @ R_init
     bbox_min, bbox_max = bounding_box(rotated_points)
-    initial_scale = (bbox_max - bbox_min) / 5.0
 
     # initial superquadric parameters -> x: [e1, e2, a1, a2, a3, rx, ry, rz, tx, ty, tz]
-    x0 = np.array([
-                    1.0, 1.0,                                                        # e1, e2
-                    initial_scale[0], initial_scale[1], initial_scale[2],            # a1, a2, a3
-                    initial_rotation[0], initial_rotation[1], initial_rotation[2],   # rx, ry, rz
-                    0.0, 0.0, 0.0                                                    # tx, ty, tz
+    if x0 is None:
+        initial_rotation = matrix_to_euler(R_init)
+        initial_scale = (bbox_max - bbox_min) / 5.0
+
+        x0 = np.array([
+            1.0, 1.0,                                                        # e1, e2
+            initial_scale[0], initial_scale[1], initial_scale[2],            # a1, a2, a3
+            initial_rotation[0], initial_rotation[1], initial_rotation[2],   # rx, ry, rz
+            0.0, 0.0, 0.0                                                    # tx, ty, tz
             ])
 
     # define lower and upper bounds for parameters
@@ -149,12 +194,13 @@ def points_to_superquadric(points, args=None):
         )
 
         x_new = optfunc.x
+        cost = optfunc.cost
 
         # S step
         if previous_cost == np.inf: cost_change = -1
-        else: cost_change = (optfunc.cost - previous_cost) / previous_cost
+        else: cost_change = (cost - previous_cost) / previous_cost
 
-        previous_cost = optfunc.cost
+        previous_cost = cost
 
         # when the solution stops improving, find similar superquadrics
         if abs(cost_change) < switching_threshold:
@@ -162,7 +208,7 @@ def points_to_superquadric(points, args=None):
 
             best_candidate = x_new
             best_p = p
-            best_cost = optfunc.cost
+            best_cost = cost
 
             # run a single EM step on each candidate and select the best one
             for candidate in similars:
@@ -191,6 +237,7 @@ def points_to_superquadric(points, args=None):
                     best_cost = candidate_optfunc.cost
 
             x_new = best_candidate
+            cost = best_cost
             p = best_p
 
         # calculate sigma
@@ -201,7 +248,9 @@ def points_to_superquadric(points, args=None):
         sigma = sigma_new
         x = x_new
 
-    # print(f"Cluster optimization time: {(time.time() - start_time):.3f}s")
+        # if no switch improves the fit, then terminate early
+        if abs((cost - previous_cost) / previous_cost) > switching_threshold:
+            break
 
     # fix translation and scale
     x[8:11] = x[8:11] * scale + centroid
