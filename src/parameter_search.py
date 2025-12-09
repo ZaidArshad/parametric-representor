@@ -12,19 +12,13 @@ import optimization
 import metrics
 from superquadric import Superquadric
 
-def run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size):
+def run_test(points, inlier_ratio, switching_threshold, min_cluster_size):
     """
-    Runs the superquadric fitting process for a given model and parameters, 
+    Runs the superquadric fitting process for a given set of points and parameters, 
     and returns the IoU and Chamfer Distance.
     """
-    # ground truth
-    ply_path = f"data/{model_name}/surface_points.ply"
-    
-    if not os.path.exists(ply_path):
-        print(f"Could not find data for {model_name} at {ply_path}")
-        return None, None
-
-    gt_surface_points = trimesh.load(ply_path).vertices
+    # points is the ground truth for this test
+    gt_surface_points = points
 
     args = {
         'inlier_ratio': inlier_ratio,
@@ -55,14 +49,14 @@ def run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size):
     
     return iou, chamfer
 
-def objective_function(params, model_name):
+def objective_function(params, points):
     """
     The objective function for Bayesian optimization
     """
     inlier_ratio, switching_threshold, min_cluster_size = params
     
     # run the test
-    iou, chamfer = run_test(model_name, inlier_ratio, switching_threshold, min_cluster_size)
+    iou, chamfer = run_test(points, inlier_ratio, switching_threshold, min_cluster_size)
     
     iou_str = f"{iou:.4f}" if iou is not None else "Failed"
     print(f"    params: inlier ratio={inlier_ratio:.4f}, switching threshold={switching_threshold:.6f}, min cluster size={min_cluster_size}. IoU: {iou_str}")
@@ -74,14 +68,8 @@ def objective_function(params, model_name):
     # return negative iou for minimization
     return -iou 
 
-def main():
-    parser = argparse.ArgumentParser(description='run bayesian optimization')
-    parser.add_argument('model_name', type=str, help='name of the model')
-    args = parser.parse_args()
-    
-    model = args.model_name
-    
-    print(f"optimizing metaparams for: {model}")
+def optimize_superquadrics(points):
+    print(f"optimizing metaparams...")
     
     # search space
     space = [
@@ -93,22 +81,20 @@ def main():
         
         # discrete: min cluster size
         Integer(1, 100, name='min_cluster_size')
-
-        # if we add more parameters, we can add them here
     ]
     
     start_time = time.time()
     
-    # we need to freeze the model name for the objective function since gp_minimize only accepts a single argument
+    # we need to freeze the points for the objective function
     def objective(params):
-        return objective_function(params, model)
+        return objective_function(params, points)
 
     # run the optimization
     res_bo = gp_minimize(
         func=objective,
         dimensions=space,
-        n_calls=30,          # total number of evaluations of the objective function
-        n_initial_points=10, # this many random initial points to sample
+        n_calls=15,          # total number of evaluations of the objective function
+        n_initial_points=8, # this many random initial points to sample
         acq_func="gp_hedge",
         verbose=False
     )
@@ -120,18 +106,14 @@ def main():
     best_params = res_bo.x
     
     # run the final best test to get the chamfer distance and display metrics
-    final_iou, final_chamfer = run_test(model, best_params[0], best_params[1], best_params[2])
+    final_iou, final_chamfer = run_test(points, best_params[0], best_params[1], best_params[2])
 
-    print(f"\nbest parameters found for {model}:")
+    print(f"\nbest parameters found:")
     print(f"  inlier ratio: {best_params[0]:.4f}")
     print(f"  switching threshold: {best_params[1]:.6f}")
     print(f"  min cluster size: {int(best_params[2])}")
     print(f"  IoU: {final_iou:.4f}")
     print(f"  chamfer distance: {final_chamfer:.4f}")
-    print("\nVisualizing best result...")
-    
-    ply_path = f"data/{model}/surface_points.ply"
-    gt_surface_points = trimesh.load(ply_path).vertices
     
     best_args = {
         'inlier_ratio': best_params[0],
@@ -140,16 +122,4 @@ def main():
         'iterations': 5,
     }
     
-    superquadric_params, clusters = optimization.points_to_superquadrics(gt_surface_points, args=best_args)
-    superquadrics = [Superquadric(x) for x in superquadric_params]
-    
-    colors = [[randint(0, 255), randint(0, 255), randint(0, 255), 127] for _ in clusters]
-    sq_meshes = [superquadrics[i].create_mesh(20, 20, colors[i]) for i in range(len(superquadrics))]
-    pc_meshes = [trimesh.points.PointCloud(clusters[i], colors=colors[i]) for i in range(len(clusters))]
-
-    scene = trimesh.Scene([*sq_meshes, *pc_meshes])
-
-    scene.show(background=[0, 0, 0, 255])
-
-if __name__ == "__main__":
-    main()
+    return optimization.points_to_superquadrics(points, args=best_args)
