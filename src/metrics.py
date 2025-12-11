@@ -127,23 +127,3 @@ def pc_intersection_over_union(a, b):
     union = a_vx.union(b_vx)
     intersection = a_vx.intersection(b_vx)
     return len(intersection)/len(union)
-    
-# Test
-# dog_pc = trimesh.load("data/dog/surface_points.ply")
-# dog_pc_2 = dog_pc.copy()
-# offset = (0.1,0.1,0.1)
-# dog_pc_2.apply_translation(offset)
-# print("IOU", pc_intersection_over_union(dog_pc, dog_pc_2))
-
-# a = pc_to_voxel(dog_pc)
-# mesh_a = voxel_to_mesh(a, 0.9)
-# mesh_a.visual.face_colors = [[255, 0, 0, 255]] * len(mesh_a.faces)
-# b = pc_to_voxel(dog_pc_2)
-# mesh_b = voxel_to_mesh(b, 0.9)
-# mesh_b.visual.face_colors = [[0, 0, 255, 255]] * len(mesh_b.faces)
-# scene = trimesh.Scene([mesh_a, mesh_b])
-# scene.show()
-
-
-
-

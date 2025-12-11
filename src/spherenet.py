@@ -102,13 +102,13 @@ def visualise_spheres(sphere_params, reference_model):
     sphere_centers = sphere_params[..., :3]
     sphere_radii = np.abs(sphere_params[..., 3])
     scene = trimesh.Scene()
-    if reference_model is not None:
-        scene.add_geometry(trimesh.PointCloud(reference_model, colors=[255, 0, 0, 50]))
     for center, radius in zip(sphere_centers, sphere_radii): 
         sphere = trimesh.creation.icosphere(radius=radius, subdivisions=2)
-        sphere.visual.vertex_colors = [randint(0, 255), randint(0, 255), randint(0, 255), 127]
+        sphere.visual.vertex_colors = [randint(0, 255), randint(0, 255), randint(0, 255), 255]
         sphere.apply_translation(center)
         scene.add_geometry(sphere)
+    if reference_model is not None:
+        scene.add_geometry(trimesh.PointCloud(reference_model, colors=[255, 0, 0, 50]))
         
     scene.show(background=[255, 255, 255, 255])
 
@@ -191,15 +191,3 @@ def determine_sphere_params(surface_points, sdf_points, sdf_values, num_spheres=
             print(f"Iteration {i}, Loss: {loss.item()}")
 
     return sphere_params
-
-
-# Test 
-# pcd_model = trimesh.load("data/dog/surface_points.ply").vertices
-# sdf_model = np.load("data/dog/voxel_and_sdf.npz")
-# sdf_points = sdf_model["sdf_points"]
-# sdf_values = sdf_model["sdf_values"]
-
-# sphere_params = determine_sphere_params(pcd_model, sdf_points, sdf_values, num_epochs=50)
-# # visualise_spheres(sphere_params, reference_model=pcd_model.vertices)
-# pc = sphere_params_to_pc(sphere_params.tolist())
-# pc.show()

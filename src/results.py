@@ -1,3 +1,5 @@
+# This file is a script that automates our testing
+
 import spherenet
 import metrics
 import trimesh
@@ -19,6 +21,8 @@ def post_results(elapsed_t, pc, gt):
         elapsed_t (float): How long it took to generate the point cloud.
         pc (list): Nx3 matrix of fitted point cloud.
         gt (list): Kx3 matrix of ground truth point cloud.
+    Returns:
+        (tuple): The calculated (Elapsed time, Chamfer distance, IoU).
     """
     iou = round(metrics.pc_intersection_over_union(gt, pc), 4)
     chamfer_d = round(metrics.chamfer_distance(gt, pc), 4)
@@ -35,6 +39,8 @@ def baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual=T
         gt_sdf_points (list): Kx3 matrix of ground truth sdf points.
         gt_sdf_values (list): List of ground truth K signed distances.
         show_visual (boolean, optional): Whether to show the visual comparison between the fit and ground truth.
+    Returns:
+        (tuple): The calculated (Elapsed time, Chamfer distance, IoU).
     """
     print("Baseline test.")
 
@@ -55,6 +61,8 @@ def superquadric_test(gt_surface_points, show_visual=True):
     Args:
         gt_surface_points (list): Nx3 matrix of ground truth surface points.
         show_visual (boolean, optional): Whether to show the visual comparison between the fit and ground truth.
+    Returns:
+        (tuple): The calculated (Elapsed time, Chamfer distance, IoU).
     """
     print("Superquadric test.")
 
@@ -81,6 +89,13 @@ def superquadric_test(gt_surface_points, show_visual=True):
     return post_results(elapsed_t, superquadric_points, gt_surface_points)
 
 def save_results(file_name, results):
+    """
+    Save the results of a test to the given file name. 
+
+    Args:
+        file_name (string): File name to save results to.
+        results (list): List of results in the form of (Elapsed time, Chamfer distance, IoU).
+    """
     print(f"Saving to {file_name}")
     with open(file_name, "w", newline="") as file:
         writer = csv.writer(file)
@@ -101,23 +116,32 @@ def summarize_results():
 
 
 def run_tests(test_type, save_to_file, iterations, show_visual, model_name):
-        # Ground truth
-        gt_surface_points = trimesh.load(f"data/{model_name}/surface_points.ply").vertices
-        gt_sdf_model = np.load(f"data/{model_name}/voxel_and_sdf.npz")
-        gt_sdf_points = gt_sdf_model["sdf_points"]
-        gt_sdf_values = gt_sdf_model["sdf_values"]
+    """
+    Runs the tests using the given options. 
+    Args: 
+        test_type (string): Fitting algorithm to use.
+        save_to_file (bool): Whether to save results to results/*.csv.
+        iterations (int): Number of iterations to test fitting algorithm against model.
+        show_visual (bool): Whether to show the trimesh visual for each iteration.
+        model_name (int): Model to test fitting algorithm against.
+    """
+    # Ground truth
+    gt_surface_points = trimesh.load(f"data/{model_name}/surface_points.ply").vertices
+    gt_sdf_model = np.load(f"data/{model_name}/voxel_and_sdf.npz")
+    gt_sdf_points = gt_sdf_model["sdf_points"]
+    gt_sdf_values = gt_sdf_model["sdf_values"]
 
-        results = []
-        for i in range(iterations): 
-            result = (baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual) if test_type == "base" 
-                      else superquadric_test(gt_surface_points, show_visual))
-            results.append(result)
-        if (save_to_file):
-            output_file = f"results/result_{test_type}_{model_name}.csv"
-            save_results(output_file, results)
+    results = []
+    for i in range(iterations): 
+        result = (baseline_test(gt_surface_points, gt_sdf_points, gt_sdf_values, show_visual) if test_type == "base" 
+                    else superquadric_test(gt_surface_points, show_visual))
+        results.append(result)
+    if (save_to_file):
+        output_file = f"results/result_{test_type}_{model_name}.csv"
+        save_results(output_file, results)
 
 if __name__ == "__main__":
-    # Example python src/results.py all 1 0 5 dog
+    # Example python src/results.py all 0 1 5 dog
     test_type = sys.argv[1] # all, base or superquadric
     save_to_file = bool(int(sys.argv[2])) # 0 or 1
     show_visual = bool(int(sys.argv[3])) # 0 or 1
