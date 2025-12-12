@@ -113,21 +113,20 @@ class Superquadric:
         """ creates a mesh of the superquadric surface """
         
         # parameter ranges
-        u = np.linspace(-np.pi/2, np.pi/2, u_res)
-        v = np.linspace(-np.pi, np.pi, v_res)
-        u, v = np.meshgrid(u, v)
+        u = np.linspace(0, 2 * np.pi, u_res, endpoint=False)
+        v = np.linspace(0, np.pi, v_res, endpoint=True)
+        u, v = np.meshgrid(u, v, indexing='ij')
+        u, v = u.ravel(), v.ravel()
 
         # signed power
         def spow(x, p):
-            return np.sign(x) * (np.abs(x) ** p)
+            return np.sign(x) * np.pow(np.abs(x), p)
 
         # parametric superquadric surface
-        x = spow(np.cos(u), self.e1) * spow(np.cos(v), self.e2)
-        y = spow(np.cos(u), self.e1) * spow(np.sin(v), self.e2)
-        z = spow(np.sin(u), self.e1)
-
-        # stack into (N,3)
-        points = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        points = np.zeros((u_res * v_res, 3))
+        points[:, 0] = spow(np.sin(v), self.e1) * spow(np.cos(u), self.e2)
+        points[:, 1] = spow(np.sin(v), self.e1) * spow(np.sin(u), self.e2)
+        points[:, 2] = spow(np.cos(v), self.e1)
 
         # scaling
         points *= self.size
@@ -137,18 +136,19 @@ class Superquadric:
 
         # build faces for the mesh
         faces = []
-        for i in range(-1, u_res - 1):
+        for i in range(u_res):
             for j in range(v_res - 1):
-                idx = i * v_res + j
-                faces.append([idx, idx + 1, idx + v_res])
-                faces.append([idx + 1, idx + v_res + 1, idx + v_res])
+                idx00 = ( i      % u_res) * v_res + ( j      % v_res)
+                idx01 = ( i      % u_res) * v_res + ((j + 1) % v_res)
+                idx10 = ((i + 1) % u_res) * v_res + ( j      % v_res)
+                idx11 = ((i + 1) % u_res) * v_res + ((j + 1) % v_res)
+
+                faces.append([idx00, idx01, idx10])
+                faces.append([idx01, idx11, idx10])
 
         faces = np.array(faces)
 
         mesh = trimesh.Trimesh(vertices=points, faces=faces, process=True)
-
-        # flip normals
-        mesh.invert()
 
         # change color
         mesh.visual.vertex_colors = colors
