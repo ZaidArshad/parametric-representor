@@ -24,6 +24,8 @@ We have included scripts to setup a Python virtual environment and install the p
 
 To run the model once on a single shape, run `python src/main.py model_name`, where `model_name` is `bunny`, `chair`, `dog`, `hand`, `pot`, `rod`, `sofa`, or `statue`. The script will look for `data/model_name/surface_points.ply`.
 
+Please note that, due to the random elements of the Bayesian optimization step, our method does not always produce the same results every time.
+
 ## Data
 The models that can be found in the `data` directory come in the form of meshes, SDFs, voxels and point clouds. For reference: `.npz` file contain keys `[voxels, sdf_points, sdf_values, centroid, scale]`
 
