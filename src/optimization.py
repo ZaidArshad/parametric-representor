@@ -89,6 +89,7 @@ def points_to_superquadrics(points, args=None):
 
     return superquadrics, past_clusters
 
+# referenced from: https://github.com/bmlklwx/EMS-superquadric_fitting
 def points_to_superquadric(points, args=None, x0=None):
     """
     optimizes superquadric parameters to fit a set of 3D points

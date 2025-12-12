@@ -50,7 +50,7 @@ def matrix_to_euler(R_mat):
     rx, ry, rz = rot.as_euler('xyz', degrees=False)
     return rx, ry, rz
 
-
+# below functions referenced from: https://github.com/bmlklwx/EMS-superquadric_fitting
 def distance_to_superquadric(points, x):
     """ computes the implicit distance from points to superquadric """
     R = euler_to_matrix(x[5], x[6], x[7])
@@ -99,7 +99,6 @@ def signed_distance_to_superquadric(points, x):
     dist = r_norm * (1 - f)
     return dist
 
-
 def gaussian_3d_from_dist(dist, sigma2):
     """ computes the gaussian probability density from distances in 3D """
     sigma2 = np.maximum(sigma2, 1e-10)
@@ -113,6 +112,9 @@ def inlier_probability(distances, sigma, w, p0):
     posterior_inlier = ((1 - w) * g) / ((1 - w) * g + w * p0 + 1e-20)
     return np.clip(posterior_inlier, 1e-12, 1.0 - 1e-12)
 
+# altered from https://github.com/bmlklwx/EMS-superquadric_fitting
+# they use a more complex cost function with the addition of a surface area term, but we found this custom
+# cost function better for our purposes
 def cost_function(x, points, p):
     """ cost function for least squares optimization """
     distances = distance_to_superquadric(points, x)
