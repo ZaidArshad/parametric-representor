@@ -48,4 +48,6 @@ Example: `python src/results.py all 0 1 5 dog hand pot` will run both fitting al
 
         Wikipedia, Flood fill, URL: https://en.wikipedia.org/wiki/Flood_fill
 
+        Weixiao Liu, Yuwei Wu, Sipu Ruan, Gregory S. Chirikjian URL: https://github.com/bmlklwx/EMS-superquadric_fitting
+
         Zekun Hao,  Hadar Averbuch-Elor,  Noah Snavely, SergeBelongie, DualSDF, URL: https://github.com/zekunhao1995/DualSDF 
