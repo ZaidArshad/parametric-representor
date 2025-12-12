@@ -75,16 +75,16 @@ def optimize_superquadrics(points):
     # search space
     space = [
         # continuous inlier ratio
-        Real(0.7, 1.0 - 1e-6, name='inlier_ratio'),
+        Real(0.5, 0.999999, name='inlier_ratio'),
 
         # continuous switching threshold
-        Real(0.001, 0.15, name='switching_threshold'),
+        Real(0.0005, 0.2, name='switching_threshold'),
 
         # discrete: min cluster size
-        Integer(2, 100, name='min_cluster_size'),
+        Integer(2, 50, name='min_cluster_size'),
 
         # discrete: number of clusters
-        Integer(1, 50, name='n_clusters'),
+        Integer(1, 40, name='n_clusters'),
     ]
 
     start_time = time.time()
@@ -97,8 +97,8 @@ def optimize_superquadrics(points):
     res_bo = gp_minimize(
         func=objective,
         dimensions=space,
-        n_calls=25,          # total number of evaluations of the objective function
-        n_initial_points=8,  # this many random initial points to sample
+        n_calls=35,          # total number of evaluations of the objective function
+        n_initial_points=10, # this many random initial points to sample
         acq_func="gp_hedge",
         verbose=False
     )
