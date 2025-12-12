@@ -7,7 +7,9 @@ This is a project for our course, `CMPT 464: Geometric Modeling in Computer Grap
 ### Authors
 
 Arlo Watts
+
 Jordan McKenzie
+
 Zaid Arshad
 
 ## Setup
